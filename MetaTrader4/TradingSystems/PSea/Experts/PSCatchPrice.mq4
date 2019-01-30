@@ -8,6 +8,7 @@
 #property link      "https://www.psinvest.eu"
 #property version   "1.00"
 #property strict
+
 //--- input parameters
 input string Emails = "name1@mail.com, name2@mail.com"; // The email addresses separated with comma. Example: "name1@mail.com, name2@mail.com"
 input ENUM_LINE_STYLE FirstLineStyle = STYLE_DASH; // First line style
@@ -27,7 +28,7 @@ string _emails[];
 int _emailCount;
 const string _emailSeparator = ",";
 
-// TODO: Prosess errors.
+// TODO: Process errors.
 // TODO: Add Logger.
 
 //+------------------------------------------------------------------+
