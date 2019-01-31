@@ -31,8 +31,12 @@ double _point;
 double _stopLoss;
 double _takeProfit;
 string _commentOrder;
+int _lastBarNumber;
+int _currentBarNumber;
 
 CFileLog *_log;
+PSSignals* _signals;
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -48,10 +52,15 @@ int OnInit()
 
    _symbol = Symbol();
    _period = Period();
+
+   _signals = new PSSignals(_log, _symbol, _period);
+
    _point =  Point * ((Digits == 5 || Digits == 3) ? 10 : 1);
    _stopLoss = STOPLOSS * _point;
    _takeProfit = TAKEPROFIT * _point;
    _commentOrder = WindowExpertName();
+   _lastBarNumber = Bars;
+   _currentBarNumber = _lastBarNumber;
 
    return INIT_SUCCEEDED;
 }
@@ -62,6 +71,7 @@ void OnDeinit(const int reason)
 {
 
    GlobalVariablesDeleteAll();
+   delete _signals;
    delete _log;
 }
 //+------------------------------------------------------------------+
@@ -73,9 +83,17 @@ void OnTick()
    {
       return;
    }
-   
+
+   _currentBarNumber = Bars;
+
+   // It prevent to open a lot of position per bar.
+   if(_currentBarNumber == _lastBarNumber)
+   {
+      return;
+   }
+
    int orderTicket = GetFirstOpenOrder(MAGICNUMBER);
-   
+      
    if(orderTicket == -1)
    {
       OpenOrderProcessing();
@@ -83,13 +101,15 @@ void OnTick()
    else
    {
       CloseOrderProcessing();
-   } 
+   }
+
+   _lastBarNumber = _currentBarNumber;
 }
 
 bool CheckSystems()
 {
-   bool checkOpenSignal = CheckSignalId(OpenSignalSystemId);
-   bool checkCloseSignal = CheckSignalId(CloseSignalSystemId);
+   bool checkOpenSignal = _signals.CheckSignalIdIsValid(OpenSignalSystemId);
+   bool checkCloseSignal = _signals.CheckSignalIdIsValid(CloseSignalSystemId);
    
    if(!checkOpenSignal || !checkCloseSignal)
    {
@@ -111,7 +131,7 @@ bool CheckSystems()
 
 bool OpenOrderProcessing()
 {
-   int signal = CheckSignal(OpenSignalSystemId, true);
+   int signal = _signals.Signal(OpenSignalSystemId, true);
    if(signal == -1)
    {
       return true;      
@@ -168,13 +188,15 @@ bool OpenNewOrder(int operation, double price, double stoploss)
 
       return false;
    }
-
+   
+   //_lastBarNumber = _currentBarNumber;
+   
    return true;
 }
 
 bool CloseOrderProcessing()
 {
-   int signal = CheckSignal(CloseSignalSystemId, false);
+   int signal = _signals.Signal(CloseSignalSystemId, false);
    if(signal == -1)
    {
       return true;      
@@ -207,6 +229,8 @@ bool CloseOrder(int orderType)
       _log.Error(StringConcatenate("Failed to Close ", orderType ? "Buy" : "Sell", " order #", OrderTicket(), " ", _symbol,"! Error code = ",
             error,", ",ErrorDescription(error), "!"));
    }
+   
+   //_lastBarNumber = _currentBarNumber;
    
    return result;
 }
