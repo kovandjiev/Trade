@@ -10,7 +10,7 @@
 #property version   "1.00"
 #property strict
 
-#include <PSSignals.mqh>
+#include <PSSignalsOld2.mqh>
 #include <PSMarket.mqh>
 #include <FileLog.mqh>
 #include <stdlib.mqh>
@@ -45,7 +45,7 @@ int OnInit()
     _symbol = Symbol();
     _period = Period();
 
-    _signals = new PSSignals(_log, _symbol, _period);
+    _signals = new PSSignals(_log, _symbol, _period, SignalSystemId);
 
     _lastBarNumber = Bars;
     _vlineId = 1;
@@ -81,7 +81,7 @@ void OnTick()
    }
 
     // Open signal
-    int openSignal = _signals.Signal(SignalSystemId, true);
+    int openSignal = _signals.Signal(true);
     if(openSignal != -1)
     {
         VLineCreate(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open");
@@ -131,6 +131,7 @@ bool VLineCreate(const color           clr,        // line color
 
 bool CheckSystems()
 {
+/*
    bool checkOpenSignal = _signals.CheckSignalIdIsValid(SignalSystemId);
    bool checkCloseSignal = _signals.CheckSignalIdIsValid(SignalSystemId);
    
@@ -140,6 +141,6 @@ bool CheckSystems()
 
       return false;
    }
-
+*/
    return true;
 }

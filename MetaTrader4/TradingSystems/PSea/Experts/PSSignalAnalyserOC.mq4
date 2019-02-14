@@ -14,9 +14,8 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-#define MAGICNUMBER 20190122   
-
-extern int  SignalSystemId = 1; // Signal system Id form 1 to 24
+extern int  OpenSignalId = 1; // Open signal system Id form 1 to 34
+extern int  CloseSignalId = 1; // Close signal system Id form 1 to 11
 
 string _symbol;
 int _period;
@@ -25,8 +24,7 @@ int _lastBarNumber;
 int _vlineId;
 
 CFileLog *_log;
-PSSignals* _signalOpen;
-PSSignals* _signalClose;
+PSSignals* _signals;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -40,11 +38,12 @@ int OnInit()
     _symbol = Symbol();
     _period = Period();
 
-    _signalOpen = new PSSignals(_log, _symbol, _period, SignalSystemId);
-    _signalClose = new PSSignals(_log, _symbol, _period, SignalSystemId);
+    _signals = new PSSignals(_log, _symbol, _period, OpenSignalId, CloseSignalId);
 
-    if(!CheckSystems())
+    if(!_signals.IsInitialised())
     {
+        _log.Critical("PSSignals is not initialized!");
+
         return INIT_FAILED;
     }
 
@@ -60,8 +59,7 @@ void OnDeinit(const int reason)
 {
 
    GlobalVariablesDeleteAll();
-   delete _signalOpen;
-   delete _signalClose;
+   delete _signals;
    delete _log;
 }
 //+------------------------------------------------------------------+
@@ -69,34 +67,33 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
-   if(!IsTradeAllowed()) 
-   {
-      return;
-   }
-
-   int currentBarNumber = Bars;
-
-   // Process logics only if new bar is arrived.
-   if(currentBarNumber == _lastBarNumber)
-   {
-      return;
-   }
-
-    // Open signal
-    int openSignal = _signalOpen.Signal(true);
-    if(openSignal != -1)
+    if(!IsTradeAllowed()) 
     {
-        VLineCreate(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open");
+        return;
     }
 
-    // Close signal
-    // int closeSignal = _signalClose.Signal(false);
-    // if(closeSignal != -1)
+    int currentBarNumber = Bars;
+
+    // Process logics only if new bar is arrived.
+    if(currentBarNumber == _lastBarNumber)
+    {
+        return;
+    }
+    _lastBarNumber = currentBarNumber;
+
+    // // Close signal
+    // int closeSignal = _signals.Close();
+    // if(closeSignal != OP_NONE)
     // {
-    //     VLineCreate(closeSignal == OP_BUY ? clrHotPink : clrSkyBlue, closeSignal == OP_BUY ? "Buy close" : "Sell close");
+    //     VLineCreate(closeSignal == OP_BUY ? clrHotPink : clrSkyBlue, closeSignal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
     // }
 
-   _lastBarNumber = currentBarNumber;
+    // Open signal
+    int openSignal = _signals.Open();
+    if(openSignal != OP_NONE)
+    {
+        VLineCreate(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
+    }
 }
 
 bool VLineCreate(const color           clr,        // line color
@@ -129,19 +126,4 @@ bool VLineCreate(const color           clr,        // line color
     ObjectSetInteger(chart_ID,name,OBJPROP_ZORDER,z_order);
 
     return true;
-}
-
-bool CheckSystems()
-{
-   bool checkOpenSignal = _signalOpen.IsSignalValid();
-   bool checkCloseSignal = _signalClose.IsSignalValid();
-   
-   if(!checkOpenSignal || !checkCloseSignal)
-   {
-      _log.Critical(StringConcatenate(!checkOpenSignal ? "Open" : "Close", " signal system with Id:", SignalSystemId, " is not exists."));
-
-      return false;
-   }
-
-   return true;
 }

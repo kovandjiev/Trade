@@ -19,3 +19,5 @@ copy C:\Users\Plamen\AppData\Roaming\MetaQuotes\Terminal\0A89B723E9501DAD3F2D5CB
 copy C:\Users\Plamen\AppData\Roaming\MetaQuotes\Terminal\0A89B723E9501DAD3F2D5CB4F27EBDAB\MQL4\Indicators\JCCIX.mq4 D:\_GitHub\_My_Git\Trade\MetaTrader4\TradingSystems\PSea\Indicators
 
 copy C:\Users\Plamen\AppData\Roaming\MetaQuotes\Terminal\0A89B723E9501DAD3F2D5CB4F27EBDAB\MQL4\Indicators\StepMA_Stoch_NK.mq4 D:\_GitHub\_My_Git\Trade\MetaTrader4\TradingSystems\PSea\Indicators
+
+copy C:\Users\Plamen\AppData\Roaming\MetaQuotes\Terminal\0A89B723E9501DAD3F2D5CB4F27EBDAB\MQL4\Indicators\J2JMA.mq4 D:\_GitHub\_My_Git\Trade\MetaTrader4\TradingSystems\PSea\Indicators
