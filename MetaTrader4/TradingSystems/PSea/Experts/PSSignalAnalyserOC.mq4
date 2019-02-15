@@ -81,19 +81,19 @@ void OnTick()
     }
     _lastBarNumber = currentBarNumber;
 
-    // // Close signal
-    // int closeSignal = _signals.Close();
-    // if(closeSignal != OP_NONE)
-    // {
-    //     VLineCreate(closeSignal == OP_BUY ? clrHotPink : clrSkyBlue, closeSignal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
-    // }
+    // Close signal
+    int closeSignal = _signals.Close();
+    if(closeSignal != OP_NONE)
+    {
+        VLineCreate(closeSignal == OP_BUY ? clrHotPink : clrSkyBlue, closeSignal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
+    }
 
     // Open signal
-    int openSignal = _signals.Open();
-    if(openSignal != OP_NONE)
-    {
-        VLineCreate(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
-    }
+    // int openSignal = _signals.Open();
+    // if(openSignal != OP_NONE)
+    // {
+    //     VLineCreate(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
+    // }
 }
 
 bool VLineCreate(const color           clr,        // line color
