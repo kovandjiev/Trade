@@ -14,14 +14,15 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-extern int  OpenSignalId = 1; // Open signal system Id form 1 to 34
-extern int  CloseSignalId = 1; // Close signal system Id form 1 to 11
+extern int  SignalId = 1; // Open signal system Id form 1 to 34
+//extern int  CloseSignalId = 1; // Close signal system Id form 1 to 11
 
 string _symbol;
 int _period;
 double _point;
 int _lastBarNumber;
 int _vlineId;
+int _lastSignal;
 
 CFileLog *_log;
 PSSignals* _signals;
@@ -38,7 +39,7 @@ int OnInit()
     _symbol = Symbol();
     _period = Period();
 
-    _signals = new PSSignals(_log, _symbol, _period, OpenSignalId, CloseSignalId);
+    _signals = new PSSignals(_log, _symbol, _period, SignalId);
 
     if(!_signals.IsInitialised())
     {
@@ -49,6 +50,7 @@ int OnInit()
 
     _lastBarNumber = Bars;
     _vlineId = 1;
+    _lastSignal = OP_NONE;
 
     return INIT_SUCCEEDED;
 }
@@ -82,18 +84,23 @@ void OnTick()
     _lastBarNumber = currentBarNumber;
 
     // Close signal
-    int closeSignal = _signals.Close();
-    if(closeSignal != OP_NONE)
+    if(_lastSignal != OP_NONE)
     {
-        VLineCreate(closeSignal == OP_BUY ? clrHotPink : clrSkyBlue, closeSignal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
+        int closeSignal = _signals.Close(_lastSignal);
+        if (closeSignal != OP_NONE) 
+        {
+            _lastSignal = OP_NONE;
+            VLineCreate(closeSignal == OP_BUY ? clrHotPink : clrSkyBlue, closeSignal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
+        }
     }
 
     // Open signal
-    // int openSignal = _signals.Open();
-    // if(openSignal != OP_NONE)
-    // {
-    //     VLineCreate(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
-    // }
+    int openSignal = _signals.Open();
+    if(openSignal != OP_NONE)
+    {
+        _lastSignal = openSignal;
+        VLineCreate(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
+    }
 }
 
 bool VLineCreate(const color           clr,        // line color
