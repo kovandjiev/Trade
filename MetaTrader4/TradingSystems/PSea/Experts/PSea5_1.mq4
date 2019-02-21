@@ -18,7 +18,7 @@
 extern int SignalId = 1; // Open signal system Id form 1 to 8
 extern int Stoploss = 25; // Stop loss in pips
 extern double SmallLot = 0.01;
-extern bool CloseSignal = false; // Close signal system
+extern int CloseSignalId = 1; // Close signal system 1 to 3
 
 const double TAKEPROFIT = 0;
 const double Lot = SmallLot * 2;
@@ -37,6 +37,7 @@ int _lastBarNumber;
 
 CFileLog *_log;
 PSSignals* _signals;
+PSMarket *_market;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -49,9 +50,9 @@ int OnInit()
     string fileName = StringConcatenate("PSea_", _symbol, "_", _period, "_", SignalId, ".log");
     //Initialise _log with filename = "example.log", Level = WARNING and Print to console
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
-    MarketFileLog = _log;
 
     _signals = new PSSignals(_log, _symbol, _period, SignalId);
+	_market = new PSMarket(_log, _symbol, _period);
 
     if(!_signals.IsInitialised())
     {
@@ -79,6 +80,7 @@ void OnDeinit(const int reason)
 
    GlobalVariablesDeleteAll();
    delete _signals;
+	delete _market;
    delete _log;
 }
 
@@ -101,7 +103,7 @@ void OnTick()
     }
     _lastBarNumber = currentBarNumber;
 
-    int orderTicket = GetFirstOpenOrder(_symbol, _magicNumber);
+    int orderTicket = _market.GetFirstOpenOrder(_magicNumber);
 
     if(orderTicket != -1) {
         ProcessOpenedOrders();
@@ -146,7 +148,7 @@ bool OpenHedgeOrders()
     double slSell = NormalizeDouble(buyPrice + _stoplossSell, Digits);
     bool sellResult = OpenNewOrder(OP_SELL, buyPrice, sellLot, slSell);
 
-    VLineCreate(signal == OP_BUY ? clrRed : clrBlue, signal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
+    _market.DrawVLine(signal == OP_BUY ? clrRed : clrBlue, signal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
 
     return buyResult && sellResult;   
 }
@@ -179,12 +181,12 @@ bool ProcessOpenedOrders()
         {
             if(OrderSymbol() == _symbol && OrderMagicNumber() == _magicNumber)
             {
-                int signal = _signals.Close(OrderType(), CloseSignal);
+                int signal = _signals.Close(OrderType(), CloseSignalId);
                 if(signal != OP_NONE) 
                 {
-                    VLineCreate(signal == OP_BUY ? clrHotPink : clrSkyBlue, signal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
+                    _market.DrawVLine(signal == OP_BUY ? clrHotPink : clrSkyBlue, signal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
 
-                    if(CloseOrders(_symbol, _magicNumber, Slippage, signal))
+                    if(_market.CloseOrders(_magicNumber, signal))
                     {
                         i = 0;
                         ordersTotal = OrdersTotal();

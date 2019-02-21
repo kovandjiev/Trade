@@ -14,8 +14,8 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-extern int  SignalId = 1; // Open signal system Id form 1 to 8
-extern bool CloseSignal = false; // Close signal system
+extern int SignalId = 1; // Open signal system Id form 1 to 8
+extern int CloseSignalId = 1; // Close signal system 1 to 3
 
 string _symbol;
 int _period;
@@ -25,6 +25,7 @@ int _lastSignal;
 
 CFileLog *_log;
 PSSignals* _signals;
+PSMarket *_market;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -37,9 +38,10 @@ int OnInit()
     string fileName = StringConcatenate("PSea_", _symbol, "_", _period, "_", SignalId, ".log");
     //Initialise _log with filename = "example.log", Level = WARNING and Print to console
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
-    MarketFileLog = _log;
 
     _signals = new PSSignals(_log, _symbol, _period, SignalId);
+
+	_market = new PSMarket(_log, _symbol, _period);
 
     if(!_signals.IsInitialised())
     {
@@ -61,6 +63,7 @@ void OnDeinit(const int reason)
 
    GlobalVariablesDeleteAll();
    delete _signals;
+	delete _market;
    delete _log;
 }
 //+------------------------------------------------------------------+
@@ -85,11 +88,11 @@ void OnTick()
     // Close signal
     if(_lastSignal != OP_NONE)
     {
-        int closeSignal = _signals.Close(_lastSignal, CloseSignal);
+        int closeSignal = _signals.Close(_lastSignal, CloseSignalId);
         if (closeSignal != OP_NONE) 
         {
             _lastSignal = OP_NONE;
-            VLineCreate(closeSignal == OP_BUY ? clrHotPink : clrSkyBlue, closeSignal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
+            _market.DrawVLine(closeSignal == OP_BUY ? clrHotPink : clrSkyBlue, closeSignal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
         }
     }
 
@@ -98,6 +101,6 @@ void OnTick()
     if(openSignal != OP_NONE)
     {
         _lastSignal = openSignal;
-        VLineCreate(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
+        _market.DrawVLine(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
     }
 }

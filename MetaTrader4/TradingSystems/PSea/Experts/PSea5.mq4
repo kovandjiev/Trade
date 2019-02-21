@@ -15,10 +15,14 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-extern int SignalId = 1; // Open signal system Id form 1 to 8
-extern int Stoploss = 25; // Stop loss in pips
-extern double Lot = 0.01;
-extern bool CloseSignal = false; // Close signal system
+extern int SignalId = 7; // Open signal system Id form 1 to 8
+extern int CloseSignalId = 2; // Close signal system 1 to 3
+extern double Lot = 0.01; // Open order Lot
+//extern int Stoploss = 25; // Stop loss in pips
+//extern bool DynamicStopLoss = true; // Using dynamic Stop loss
+//extern int DynamicSLExtraPoints = 0; // Dynamic Stop loss extra points 0 to 50
+extern double DynCloseCoeff = 0.07; // Dynamic close order coefficient 0.01 to 0.2. Deafault: 0.07
+extern double DynSLCoeff = 1.1; // Dynamic Stop loss coefficient 0.5 to 1.5. Deafault: 1.1
 
 const double TAKEPROFIT = 0;
 const int Slippage = 3;
@@ -26,16 +30,17 @@ const datetime ExpirationOrder = 0;
 
 string _symbol;
 int _period;
-double _point;
 double _stoplossBuy;
 double _stoplossSell;
 double _takeProfit;
 int _magicNumber;
 string _commentOrder;
 int _lastBarNumber;
+double _dynamicSLExtraPoints;
 
 CFileLog *_log;
 PSSignals* _signals;
+PSMarket *_market;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -48,9 +53,10 @@ int OnInit()
     string fileName = StringConcatenate("PSea_", _symbol, "_", _period, "_", SignalId, ".log");
     //Initialise _log with filename = "example.log", Level = WARNING and Print to console
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
-    MarketFileLog = _log;
 
     _signals = new PSSignals(_log, _symbol, _period, SignalId);
+
+	_market = new PSMarket(_log, _symbol, _period);
 
     if(!_signals.IsInitialised())
     {
@@ -60,13 +66,15 @@ int OnInit()
     }
     _magicNumber = _signals.GetMagicNumber();
 
-    _point =  Point * ((Digits == 5 || Digits == 3) ? 10 : 1);
-    _stoplossBuy = Stoploss * _point;
-    _stoplossSell = Stoploss * _point;
+    double pipPoints =  Point * ((Digits == 5 || Digits == 3) ? 10 : 1);
+    //_stoplossBuy = Stoploss * pipPoints;
+    //_stoplossSell = Stoploss * pipPoints;
 
-    _takeProfit = TAKEPROFIT * _point;
+    _takeProfit = TAKEPROFIT * pipPoints;
     _commentOrder = WindowExpertName();
     _lastBarNumber = Bars;
+
+    //_dynamicSLExtraPoints = DynamicSLExtraPoints * Point;
 
     return INIT_SUCCEEDED;
 }
@@ -78,6 +86,7 @@ void OnDeinit(const int reason)
 
    GlobalVariablesDeleteAll();
    delete _signals;
+	delete _market;
    delete _log;
 }
 //+------------------------------------------------------------------+
@@ -99,7 +108,7 @@ void OnTick()
     }
     _lastBarNumber = currentBarNumber;
 
-   int orderTicket = GetFirstOpenOrder(_symbol, _magicNumber);
+   int orderTicket = _market.GetFirstOpenOrder(_magicNumber);
       
    if(orderTicket != -1) {
       ProcessOpenedOrders();
@@ -123,21 +132,38 @@ bool OpenOrders()
         return false;
     }
 
-    if (signal == OP_BUY) {
-        double sellPrice = Ask;
-        double slBuy = NormalizeDouble(sellPrice - _stoplossBuy, Digits);
-        bool buyResult = OpenNewOrder(OP_BUY, sellPrice, Lot, slBuy);
+    double dynSL = _market.GetAtrStopLoss() * DynSLCoeff;
+
+    bool result = _market.OpenOrder(signal, Lot, dynSL, TAKEPROFIT, _magicNumber);
+    if (result) {
+        _market.DrawVLine(signal == OP_BUY ? clrRed : clrBlue, signal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
     }
+    
+    return result;
 
-    if (signal == OP_SELL) {
-        double buyPrice = Bid;
-        double slSell = NormalizeDouble(buyPrice + _stoplossSell, Digits);
-        bool sellResult = OpenNewOrder(OP_SELL, buyPrice, Lot, slSell);
-    }
+    // //if (DynamicStopLoss) 
+    // {
+    //     //double dynSL = _market.GetAtrStopLoss() + _dynamicSLExtraPoints;
+    //     double dynSL = _market.GetAtrStopLoss() * DynSLCoeff;
+    //     _stoplossBuy = dynSL;
+    //     _stoplossSell = dynSL;
+    // }
 
-    VLineCreate(signal == OP_BUY ? clrRed : clrBlue, signal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
+    // if (signal == OP_BUY) {
+    //     double sellPrice = Ask;
+    //     double slBuy = NormalizeDouble(sellPrice - _stoplossBuy, Digits);
+    //     bool buyResult = OpenNewOrder(OP_BUY, sellPrice, Lot, slBuy);
+    // }
 
-    return true /*buyResult && sellResult*/;   
+    // if (signal == OP_SELL) {
+    //     double buyPrice = Bid;
+    //     double slSell = NormalizeDouble(buyPrice + _stoplossSell, Digits);
+    //     bool sellResult = OpenNewOrder(OP_SELL, buyPrice, Lot, slSell);
+    // }
+
+    // _market.DrawVLine(signal == OP_BUY ? clrRed : clrBlue, signal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
+
+    // return true /*buyResult && sellResult*/;   
 }
 
 bool OpenNewOrder(int operation, double price, double lot, double stoploss)
@@ -168,12 +194,12 @@ bool ProcessOpenedOrders()
         {
             if(OrderSymbol() == _symbol && OrderMagicNumber() == _magicNumber)
             {
-                int signal = _signals.Close(OrderType(), CloseSignal);
+                int signal = _signals.Close(OrderType(), CloseSignalId, DynCloseCoeff);
                 if(signal != OP_NONE) 
                 {
-                    VLineCreate(signal == OP_BUY ? clrHotPink : clrSkyBlue, signal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
+                    _market.DrawVLine(signal == OP_BUY ? clrHotPink : clrSkyBlue, signal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
 
-                    if(CloseOrders(_symbol, _magicNumber, Slippage, signal))
+                    if(_market.CloseOrders(_magicNumber, signal))
                     {
                         i = 0;
                         ordersTotal = OrdersTotal();
