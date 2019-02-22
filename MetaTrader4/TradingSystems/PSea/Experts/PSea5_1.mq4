@@ -1,13 +1,13 @@
 //+------------------------------------------------------------------+
-//|                                                      PSea3_1.mq4 |
+//|                                                      PSea5_1.mq4 |
 //|                                   Copyright 2019, PSInvest Corp. |
 //|                                          https://www.psinvest.eu |
 //+------------------------------------------------------------------+
-// Add hashing
-// Add if signal for close order arrived, close these orders type. Result is the same as PSea3
+// Opening hedge orders if open signal arrives. If it Buy opens main order with full lot and opposite order with half lot (SmallLot).
+// Close orders if close signal from this type arrives.
 #property copyright "Copyright 2019, PS Invest Corp."
 #property link      "https://www.PSInvest.eu"
-#property version   "1.00"
+#property version   "5.10"
 #property strict
 
 #include <PSSignals.mqh>
@@ -15,15 +15,17 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-extern int SignalId = 1; // Open signal system Id form 1 to 8
-extern int Stoploss = 25; // Stop loss in pips
-extern double SmallLot = 0.01;
-extern int CloseSignalId = 1; // Close signal system 1 to 3
+extern int SignalId = 7; // Open signal system Id form 1 to 8
+extern int CloseSignalId = 2; // Close signal system 1 to 3
+extern double SmallLot = 0.01; // Lot for opposite order, main is opening SmallLot*2
+extern double DynCloseCoeff = 0.07; // Dynamic close order coefficient 0.01 to 0.2. Deafault: 0.07
+extern double DynSLCoeff = 1.1; // Dynamic Stop loss coefficient 0.5 to 1.5. Deafault: 1.1
 
 const double TAKEPROFIT = 0;
-const double Lot = SmallLot * 2;
 const int Slippage = 3;
 const datetime ExpirationOrder = 0;
+
+const double Lot = SmallLot * 2;
 
 string _symbol;
 int _period;
@@ -63,8 +65,8 @@ int OnInit()
     _magicNumber = _signals.GetMagicNumber();
 
     _point =  Point * ((Digits == 5 || Digits == 3) ? 10 : 1);
-    _stoplossBuy = Stoploss * _point;
-    _stoplossSell = Stoploss * _point;
+    // _stoplossBuy = Stoploss * _point;
+    // _stoplossSell = Stoploss * _point;
 
     _takeProfit = TAKEPROFIT * _point;
     _commentOrder = WindowExpertName();
@@ -77,11 +79,10 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-
-   GlobalVariablesDeleteAll();
-   delete _signals;
-	delete _market;
-   delete _log;
+    GlobalVariablesDeleteAll();
+    delete _signals;
+    delete _market;
+    delete _log;
 }
 
 //+------------------------------------------------------------------+
@@ -120,54 +121,15 @@ bool OpenHedgeOrders()
         return true;      
     }
 
-    // Check if it there free money.
-    if((AccountFreeMarginCheck(_symbol, signal, Lot + SmallLot) <= 0) || (GetLastError() == 134))
-    {
-        _log.Error(StringConcatenate("Open new ", _symbol, " ", signal == OP_BUY ? "Buy" : "Sell", " order error: Not enough money!"));
-        return false;
+    double dynSL = _market.GetAtrStopLoss() * DynSLCoeff;
+
+    bool result = _market.OpenHedgeOrdersSim(signal, Lot, SmallLot, dynSL, TAKEPROFIT, _magicNumber);
+
+    if (result) {
+        _market.DrawVLine(_market.OrderTypeToColor(signal, true), StringConcatenate(_market.OrderTypeToString(signal), " open"), STYLE_DASH);
     }
 
-    double buyLot = SmallLot;
-    double sellLot = SmallLot;
-
-    if(signal == OP_BUY)
-    {
-        buyLot = Lot;
-    }
-
-    if(signal == OP_SELL)
-    {
-        sellLot = Lot;
-    }
-
-    double sellPrice = Ask;
-    double slBuy = NormalizeDouble(sellPrice - _stoplossBuy, Digits);
-    bool buyResult = OpenNewOrder(OP_BUY, sellPrice, buyLot, slBuy);
-
-    double buyPrice = Bid;
-    double slSell = NormalizeDouble(buyPrice + _stoplossSell, Digits);
-    bool sellResult = OpenNewOrder(OP_SELL, buyPrice, sellLot, slSell);
-
-    _market.DrawVLine(signal == OP_BUY ? clrRed : clrBlue, signal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
-
-    return buyResult && sellResult;   
-}
-
-bool OpenNewOrder(int operation, double price, double lot, double stoploss)
-{
-   // TODO: Recurring system.
-   int ticket = OrderSend(_symbol, operation, lot, price, Slippage, stoploss, _takeProfit, _commentOrder, _magicNumber, ExpirationOrder, operation == OP_BUY ? clrRed : clrBlue);
-   if(ticket == -1)
-   {
-      int error = GetLastError();
-
-      _log.Error(StringConcatenate("Failed to Open New ", operation ? "Buy" : "Sell", " order ",_symbol,"! Error code = ",
-            error,", ",ErrorDescription(error), "!"));
-
-      return false;
-   }
-   
-   return true;
+    return result;
 }
 
 bool ProcessOpenedOrders()
@@ -181,10 +143,10 @@ bool ProcessOpenedOrders()
         {
             if(OrderSymbol() == _symbol && OrderMagicNumber() == _magicNumber)
             {
-                int signal = _signals.Close(OrderType(), CloseSignalId);
+                int signal = _signals.Close(OrderType(), CloseSignalId, DynCloseCoeff);
                 if(signal != OP_NONE) 
                 {
-                    _market.DrawVLine(signal == OP_BUY ? clrHotPink : clrSkyBlue, signal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
+                    _market.DrawVLine(_market.OrderTypeToColor(signal, false), StringConcatenate(_market.OrderTypeToString(signal), " close"), STYLE_DOT);
 
                     if(_market.CloseOrders(_magicNumber, signal))
                     {
