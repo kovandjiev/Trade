@@ -15,11 +15,11 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-extern int SignalId = 7; // Open signal system Id form 1 to 8
-extern int CloseSignalId = 2; // Close signal system 1 to 3
+extern int SignalId = 1; // Open signal system Id form 1 to 8
+extern int CloseSignalId = 1; // Close signal system 1 to 3
 extern double SmallLot = 0.01; // Lot for opposite order, main is opening SmallLot*2
-extern double DynCloseCoeff = 0.07; // Dynamic close order coefficient 0.01 to 0.2. Deafault: 0.07
-extern double DynSLCoeff = 1.1; // Dynamic Stop loss coefficient 0.5 to 1.5. Deafault: 1.1
+extern double DynCloseCoeff = 0.07; // Dynamic close order coefficient 0.01 to 0.2. Default: 0.07
+extern double DynSLCoeff = 1.1; // Dynamic Stop loss coefficient 0.5 to 1.5. Default: 1.1
 
 const double TAKEPROFIT = 0;
 const int Slippage = 3;
