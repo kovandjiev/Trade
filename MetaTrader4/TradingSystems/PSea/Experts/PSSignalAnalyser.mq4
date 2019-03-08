@@ -39,9 +39,9 @@ int OnInit()
     //Initialise _log with filename = "example.log", Level = WARNING and Print to console
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
 
-    _signals = new PSSignals(_log, _symbol, _period, SignalId);
+    _signals = new PSSignals(_log, _symbol, _period, SignalId, Digits);
 
-	_market = new PSMarket(_log, _symbol, _period);
+	_market = new PSMarket(_log, _symbol, _period, Digits);
 
     if(!_signals.IsInitialised())
     {

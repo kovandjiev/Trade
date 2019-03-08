@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                      PSea5_3.mq4 |
+//|                                             PSAllTF_Template.mq4 |
 //|                                   Copyright 2019, PSInvest Corp. |
 //|                                          https://www.psinvest.eu |
 //+------------------------------------------------------------------+
@@ -14,6 +14,8 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
+extern int PeriodId = 2; // Period 2 to 6
+
 extern int SignalId = 1; // Open signal system Id form 1 to 8
 extern double Lot = 0.01; // Open order Lot
 extern double DynSLCoeff = 1.0; // Dynamic Stop loss coefficient 0.5 to 1.5. Default: 1.1
@@ -21,29 +23,44 @@ extern double DynTPCoeff = 2.0; // Dynamic Take profit coefficient 0.5 to 1.0, 2
 
 string _symbol;
 int _period;
+int _digits;
 int _magicNumber;
 string _commentOrder;
 int _lastBarNumber;
 
 CFileLog *_log;
-PSSignals* _signals;
 PSMarket *_market;
+PSSignals* _signals;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 int OnInit()
 {
-    _symbol = Symbol();
-    _period = Period();
+    if (!IsOptimization() || !IsTesting()) {
 
-    string fileName = StringConcatenate("PSea5_", _symbol, "_", _period, "_", SignalId, ".log");
+        Print("This advisor should be run only in optimisation or backtest mode!");
+        return INIT_FAILED;
+    }
+
+    _symbol = Symbol();
+    
+    _period = GetTimeFrameByIndex(PeriodId);
+    if (_period == 0) 
+    {
+        Print(StringConcatenate("Invalid Time frame id: ", PeriodId));
+        return INIT_FAILED;
+    }
+
+    string fileName = StringConcatenate("PSAllTest_", _symbol, "_", _period, "_", SignalId, ".log");
 
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
 
-    _signals = new PSSignals(_log, _symbol, _period, SignalId, Digits);
+    _digits = (int)MarketInfo(_symbol, MODE_DIGITS); 
 
-	_market = new PSMarket(_log, _symbol, _period, Digits);
+    _signals = new PSSignals(_log, _symbol, _period, SignalId, _digits);
+
+	_market = new PSMarket(_log, _symbol, _period, _digits);
 
     if(!_signals.IsInitialised())
     {
@@ -53,7 +70,7 @@ int OnInit()
     }
     _magicNumber = _signals.GetMagicNumber();
 
-    double pipPoints =  Point * ((Digits == 5 || Digits == 3) ? 10 : 1);
+    //double pipPoints =  Point * ((Digits == 5 || Digits == 3) ? 10 : 1);
     //_stoplossBuy = Stoploss * pipPoints;
     //_stoplossSell = Stoploss * pipPoints;
 
@@ -70,7 +87,6 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    GlobalVariablesDeleteAll();
     delete _signals;
     delete _market;
     delete _log;
@@ -80,12 +96,7 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    if(!IsTradeAllowed()) 
-    {
-        return;
-    }
-
-    int currentBarNumber = Bars;
+    int currentBarNumber = iBars(_symbol, _period);
 
     // Process logics only if new bar is arrived.
     if(currentBarNumber == _lastBarNumber)
