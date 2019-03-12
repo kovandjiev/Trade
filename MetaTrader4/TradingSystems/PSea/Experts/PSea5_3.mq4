@@ -37,7 +37,7 @@ int OnInit()
     _symbol = Symbol();
     _period = Period();
 
-    string fileName = StringConcatenate("PSea5_", _symbol, "_", _period, "_", SignalId, ".log");
+    string fileName = StringConcatenate("PSea5_3_", _symbol, "_", _period, "_", SignalId, ".log");
 
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
 
