@@ -15,6 +15,7 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
+extern int PeriodId = 3; // Period 2(M15) to 6(D1)
 extern int SignalId = 1; // Open signal system Id form 1 to 8
 extern int CloseSignalId = 1; // Close signal system 1 to 3
 extern double SmallLot = 0.01; // Lot for opposite order, main is opening SmallLot*2
@@ -31,9 +32,10 @@ const double Lot = SmallLot * 2;
 
 string _symbol;
 int _period;
-double _point;
-double _takeProfit;
+//double _point;
+//double _takeProfit;
 int _magicNumber;
+int _digits;
 string _commentOrder;
 int _lastBarNumber;
 int _stopOrderLive;
@@ -48,14 +50,27 @@ PSMarket *_market;
 int OnInit()
 {
     _symbol = Symbol();
-    _period = Period();
+    //_period = Period();
+    if (Period() != PERIOD_D1) 
+    {
+        Print("Current period must be Daily");
+        return INIT_FAILED;
+    }
 
-    string fileName = StringConcatenate("PSea_", _symbol, "_", _period, "_", SignalId, ".log");
-    //Initialise _log with filename = "example.log", Level = WARNING and Print to console
+    _period = GetTimeFrameByIndex(PeriodId);
+    if (_period == 0) 
+    {
+        Print(StringConcatenate("Invalid Time frame id: ", PeriodId));
+        return INIT_FAILED;
+    }
+    _digits = Digits;
+
+    string fileName = StringConcatenate("PSea5_2_", _symbol, "_", _period, "_", SignalId, ".log");
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
 
-    _signals = new PSSignals(_log, _symbol, _period, SignalId);
-	_market = new PSMarket(_log, _symbol, _period);
+    _signals = new PSSignals(_log, _symbol, _period, SignalId, _digits);
+
+	_market = new PSMarket(_log, _symbol, _period, _digits);
 
     if(!_signals.IsInitialised())
     {
@@ -65,9 +80,9 @@ int OnInit()
     }
     _magicNumber = _signals.GetMagicNumber();
 
-    _point =  Point * ((Digits == 5 || Digits == 3) ? 10 : 1);
+    //_point =  Point * ((Digits == 5 || Digits == 3) ? 10 : 1);
 
-    _takeProfit = TAKEPROFIT * _point;
+    //_takeProfit = TAKEPROFIT * _point;
     _commentOrder = WindowExpertName();
     _lastBarNumber = Bars;
     _stopOrderLive = (int)MathRound(_period /* min */ * StopOrdLive /* bars */ * 60 /* seconds */);
@@ -79,7 +94,6 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    GlobalVariablesDeleteAll();
     delete _signals;
     delete _market;
     delete _log;
@@ -95,7 +109,7 @@ void OnTick()
         return;
     }
 
-    int currentBarNumber = Bars;
+    int currentBarNumber = iBars(_symbol, _period);
 
     // Process logics only if new bar is arrived.
     if(currentBarNumber == _lastBarNumber)
@@ -121,7 +135,7 @@ bool OpenHedgeOrders()
         return true;      
     }
 
-    double dynSL = _market.GetAtrStopLoss() * DynSLCoeff;
+    double dynSL = _market.GetIndicatorAtr() * DynSLCoeff;
     double stopOrdDist = dynSL * StopOrdDistCoeff;
     datetime expirationTime = TimeCurrent() + _stopOrderLive;
     //datetime expirationTime = iTime(_symbol, _period, 0); + _stopOrderLive;

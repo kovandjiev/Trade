@@ -15,11 +15,10 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-extern int PeriodId = 2; // Period 2(M15) to 6(D1)
 extern int SignalId = 1; // Open signal system Id form 1 to 8
 extern int Risk = 1; // Percent of Risk from account
 extern double DynSLCoeff = 1.0; // Dynamic Stop loss coefficient 0.5 to 1.5. Default: 1.1
-extern double DynTPCoeff = 2.0; // Dynamic Take profit coefficient 0.5 to 1.0, 2.0 ... Default: 2.0
+extern double DynTPCoeff = 3.0; // Dynamic Take profit coefficient 0.5 to 1.0, 2.0 ... Default: 3.0
 
 string _symbol;
 int _period;
@@ -38,19 +37,7 @@ PSMarket *_market;
 int OnInit()
 {
     _symbol = Symbol();
-    //_period = Period();
-    if (Period() != PERIOD_D1) 
-    {
-        Print("Current period must be Daily");
-        return INIT_FAILED;
-    }
-
-    _period = GetTimeFrameByIndex(PeriodId);
-    if (_period == 0) 
-    {
-        Print(StringConcatenate("Invalid Time frame id: ", PeriodId));
-        return INIT_FAILED;
-    }
+    _period = Period();
     _digits = Digits;
 
     string fileName = StringConcatenate("PSea5_3_2_", _symbol, "_", _period, "_", SignalId, ".log");
@@ -70,7 +57,7 @@ int OnInit()
     _magicNumber = _signals.GetMagicNumber();
 
     _commentOrder = WindowExpertName();
-    _lastBarNumber = Bars;
+    _lastBarNumber = iBars(_symbol, _period);
 
     return INIT_SUCCEEDED;
 }
