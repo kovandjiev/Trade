@@ -14,8 +14,10 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-extern int SignalId = 1; // Open signal system Id form 1 to 8
-extern int CloseSignalId = 1; // Close signal system 1 to 3
+extern int OpenSignalId = 1; // Open signal system Id form 1 to 9
+extern int CloseSignalId = 0; // Close signal system 1 to 3 (0 - no signal)
+extern double DynOpenCoeff = 0.07; // Dynamic open order coefficient 0.01 to 0.2. Default: 0.07
+extern double DynCloseCoeff = 0.07; // Dynamic close order coefficient 0.01 to 0.2. Default: 0.07
 
 string _symbol;
 int _period;
@@ -35,11 +37,11 @@ int OnInit()
     _symbol = Symbol();
     _period = Period();
 
-    string fileName = StringConcatenate("PSea_", _symbol, "_", _period, "_", SignalId, ".log");
+    string fileName = StringConcatenate("PSSignalAnalyser_", _symbol, "_", _period, "_", OpenSignalId, ".log");
     //Initialise _log with filename = "example.log", Level = WARNING and Print to console
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
 
-    _signals = new PSSignals(_log, _symbol, _period, SignalId, Digits);
+    _signals = new PSSignals(_log, _symbol, _period, OpenSignalId, Digits, DynOpenCoeff, CloseSignalId, DynCloseCoeff);
 
 	_market = new PSMarket(_log, _symbol, _period, Digits);
 
@@ -60,11 +62,9 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-
-   GlobalVariablesDeleteAll();
-   delete _signals;
-	delete _market;
-   delete _log;
+    delete _signals;
+    delete _market;
+    delete _log;
 }
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
@@ -86,21 +86,21 @@ void OnTick()
     _lastBarNumber = currentBarNumber;
 
     // Close signal
-    if(_lastSignal != OP_NONE)
+    if(CloseSignalId != 0 && _lastSignal != OP_NONE)
     {
-        int closeSignal = _signals.Close(_lastSignal, CloseSignalId);
+        int closeSignal = _signals.Close(_lastSignal);
         if (closeSignal != OP_NONE) 
         {
             _lastSignal = OP_NONE;
-            _market.DrawVLine(closeSignal == OP_BUY ? clrHotPink : clrSkyBlue, closeSignal == OP_BUY ? "Buy close" : "Sell close", STYLE_DOT);
+            _market.DrawVLine(_market.OrderTypeToColor(closeSignal, false), StringConcatenate(_market.OrderTypeToString(closeSignal), " close"), STYLE_DOT);
         }
     }
 
     // Open signal
     int openSignal = _signals.Open();
-    if(openSignal != OP_NONE)
+    if(OpenSignalId != 0 && openSignal != OP_NONE)
     {
         _lastSignal = openSignal;
-        _market.DrawVLine(openSignal == OP_BUY ? clrRed : clrBlue, openSignal == OP_BUY ? "Buy open" : "Sell open", STYLE_DASH);
+        _market.DrawVLine(_market.OrderTypeToColor(openSignal, true), StringConcatenate(_market.OrderTypeToString(openSignal), " open"), STYLE_DASH);
     }
 }
