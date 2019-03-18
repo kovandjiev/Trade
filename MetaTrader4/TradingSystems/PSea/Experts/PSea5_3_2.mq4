@@ -46,7 +46,7 @@ int OnInit()
 
     _signals = new PSSignals(_log, _symbol, _period, SignalId, _digits);
 
-	_market = new PSMarket(_log, _symbol, _period, _digits);
+	 _market = new PSMarket(_log, _symbol, _period, _digits);
 
     if(!_signals.IsInitialised())
     {
@@ -100,7 +100,7 @@ bool OpenOrders()
         return true;      
     }
 
-    double atr = _market.GetIndicatorAtr();
+    double atr = _market.GetAtr();
     double dynSL = atr * DynSLCoeff;
     double dynTP = atr * DynTPCoeff;
 

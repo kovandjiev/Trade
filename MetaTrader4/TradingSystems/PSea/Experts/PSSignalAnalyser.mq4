@@ -97,10 +97,13 @@ void OnTick()
     }
 
     // Open signal
-    int openSignal = _signals.Open();
-    if(OpenSignalId != 0 && openSignal != OP_NONE)
+    if(OpenSignalId > 0)
     {
-        _lastSignal = openSignal;
-        _market.DrawVLine(_market.OrderTypeToColor(openSignal, true), StringConcatenate(_market.OrderTypeToString(openSignal), " open"), STYLE_DASH);
+        int openSignal = _signals.Open();
+        if(openSignal != OP_NONE)
+        {
+            _lastSignal = openSignal;
+            _market.DrawVLine(_market.OrderTypeToColor(openSignal, true), StringConcatenate(_market.OrderTypeToString(openSignal), " open"), STYLE_DASH);
+        }
     }
 }
