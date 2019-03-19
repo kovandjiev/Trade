@@ -17,8 +17,9 @@
 
 extern int SignalId = 1; // Open signal system Id form 1 to 10
 extern int Risk = 1; // Percent of Risk from account
-extern double DynSLCoeff = 1.0; // Dynamic Stop loss coefficient 0.5 to 1.5. Default: 1.1
-extern double DynTPCoeff = 3.0; // Dynamic Take profit coefficient 0.5 to 1.0, 2.0 ... Default: 3.0
+extern double DynSLCoeff = 0.5; // Dynamic Stop loss coefficient 0.1 to 1.0. Default: 0.5
+extern double DynTPCoeff = 2.0; // Dynamic Take profit coefficient 1.5 to 3.0 ... Default: 2.0
+extern bool DynIndicator = false; // Dynamic indicator. False - Atr, true - StdDev ... Default: false
 
 string _symbol;
 int _period;
@@ -100,9 +101,17 @@ bool OpenOrders()
         return true;      
     }
 
-    double atr = _market.GetAtr();
-    double dynSL = atr * DynSLCoeff;
-    double dynTP = atr * DynTPCoeff;
+    double dynValue = 0.0;
+    if (!DynIndicator) {
+        dynValue = _market.GetAtr();
+    }
+    else
+    {
+        dynValue = _market.GetStdDev();
+    }
+
+    double dynSL = dynValue * DynSLCoeff;
+    double dynTP = dynValue * DynTPCoeff;
 
     double lot = _market.GetLotPerRisk(Risk, dynSL, signal);
 
