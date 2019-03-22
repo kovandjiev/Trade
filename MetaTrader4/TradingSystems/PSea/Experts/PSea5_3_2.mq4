@@ -24,6 +24,7 @@ extern bool DynIndicator = false; // Dynamic indicator. False - Atr, true - StdD
 string _symbol;
 int _period;
 int _digits;
+double _points;
 int _magicNumber;
 string _commentOrder;
 int _lastBarNumber;
@@ -40,14 +41,15 @@ int OnInit()
     _symbol = Symbol();
     _period = Period();
     _digits = Digits;
+    _points = Point;
 
     string fileName = StringConcatenate("PSea5_3_2_", _symbol, "_", _period, "_", SignalId, ".log");
 
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
 
-    _signals = new PSSignals(_log, _symbol, _period, SignalId, _digits);
+    _signals = new PSSignals(_log, _symbol, _period, SignalId, _digits, _points);
 
-	 _market = new PSMarket(_log, _symbol, _period, _digits);
+	 _market = new PSMarket(_log, _symbol, _period, _digits, _points);
 
     if(!_signals.IsInitialised())
     {

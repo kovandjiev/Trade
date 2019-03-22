@@ -21,12 +21,13 @@
 extern int OpenSignalId = 1; // Open signal system Id form 1 to 10
 extern int TrailingSystemId = 1; // Trailing stop loss system Id form 1
 extern int Risk = 15; // Percent of Risk from account from 1 to 20. Deault: 15 
-extern double StopLossCoeff = 0.5; // Stop loss coefficient 0.1 to 1.0. Default: 0.5
+extern double StopLossCoeff = 0.5; // Stop loss coefficient 0.0 to 1.0. Default: 0.5
 // extern double DynTPCoeff = 2.5; // Dynamic Take profit coefficient 1.5 to 3.0 ... Default: 2.5
 
 string _symbol;
 int _period;
 int _digits;
+double _points;
 int _magicNumber;
 string _commentOrder;
 int _lastBarNumber;
@@ -44,25 +45,26 @@ int OnInit()
     _symbol = Symbol();
     _period = Period();
     _digits = Digits;
-
+    _points = Point;
+    
     string fileName = StringConcatenate("PSea6_", _symbol, "_", _period, "_", OpenSignalId, ".log");
 
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
 
-    _signals = new PSSignals(_log, _symbol, _period, OpenSignalId, _digits);
+    _signals = new PSSignals(_log, _symbol, _period, OpenSignalId, _digits, _points);
     if(!_signals.IsInitialised())
     {
         return INIT_FAILED;
     }
     _magicNumber = _signals.GetMagicNumber();
 
-    _trailing = new PSTrailingSL(_log, _symbol, _period, _digits, TrailingSystemId);
+    _trailing = new PSTrailingSL(_log, _symbol, _period, _digits, _points, TrailingSystemId, StopLossCoeff);
     if(!_trailing.IsInitialised())
     {
         return INIT_FAILED;
     }
 
-    _market = new PSMarket(_log, _symbol, _period, _digits);
+    _market = new PSMarket(_log, _symbol, _period, _digits, _points);
     if (!_market.IsInitialised()) {
         return INIT_FAILED;
     }
@@ -111,16 +113,18 @@ void OnTick()
         return;      
     }
 
-    double sl = _trailing.GetStopLoss();
+    int sl = _trailing.GetStopLoss(signal);
+    //Print(StringConcatenate("SL:", sl));
 
     OpenOrders(signal, sl);
 }
 
-bool OpenOrders(int signal, double sl)
+bool OpenOrders(int signal, int sl)
 {
-    double tp = 0;
+    int tp = 0;
 
     double lot = _market.GetLotPerRisk(Risk, sl, signal);
+    //Print(StringConcatenate("Open order signal: ", signal, ", SL: ", sl, ", Lot: ", lot));
 
     bool result = _market.OpenOrder(signal, lot, sl, tp, _magicNumber);
     if (result) {
@@ -142,7 +146,8 @@ bool ProcessTrailingStop()
             if(OrderSymbol() == _symbol && OrderMagicNumber() == _magicNumber)
             {
                 int orderType = OrderType();
-                double sl = _trailing.GetStopLoss(orderType, StopLossCoeff);
+                int sl = _trailing.GetStopLoss(orderType);
+                //Print(StringConcatenate("Modify SL:", sl));
 
                 result = result && _market.ModifyOpenedOrderSL(OrderTicket(), orderType, sl);
             }
