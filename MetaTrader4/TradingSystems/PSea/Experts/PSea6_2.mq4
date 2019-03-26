@@ -1,9 +1,9 @@
 //+------------------------------------------------------------------+
-//|                                                      PSea6_1.mq4 |
+//|                                                      PSea6_2.mq4 |
 //|                                   Copyright 2019, PSInvest Corp. |
 //|                                          https://www.psinvest.eu |
 //+------------------------------------------------------------------+
-// Opening order if open signal arrives. 
+// Opening only one order if it closed opens another one. 
 // Stop loss calculated from Trailing SL.
 // No Take profit.
 // Lot calculate depend risk and free margin.
@@ -47,7 +47,7 @@ int OnInit()
     _digits = Digits;
     _points = Point;
     
-    _commentOrder = StringConcatenate("PSea6_1_", _symbol, "_", _period, "_", OpenSignalId, "_", TrailingSystemId);
+    _commentOrder = StringConcatenate("PSea6_2_", _symbol, "_", _period, "_", OpenSignalId, "_", TrailingSystemId);
     string fileName = StringConcatenate(_commentOrder, ".log");
 
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
@@ -105,7 +105,10 @@ void OnTick()
     }
     _lastBarNumber = currentBarNumber;
 
-    ProcessTrailingStop();
+    if(ProcessTrailingStop())
+    {
+        return;
+    }
     
     int orderType = _signals.Open();
     if(orderType == OP_NONE)
@@ -136,20 +139,22 @@ bool OpenOrders(int orderType, int sl)
 
 bool ProcessTrailingStop()
 {
-    bool result = true;
+    bool result = false;
     int ordersTotal = OrdersTotal();
 
     for(int i = 0; i < ordersTotal; i++)
     {
         if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
         {
-            if(OrderSymbol() == _symbol && OrderMagicNumber() == _magicNumber)
+            if(OrderMagicNumber() == _magicNumber)
             {
                 int orderType = OrderType();
                 int sl = _trailing.GetStopLoss(orderType);
                 //Print(StringConcatenate("Modify SL:", sl));
 
-                result = result && _market.ModifyOpenedOrderSL(OrderTicket(), orderType, sl);
+                _market.ModifyOpenedOrderSL(OrderTicket(), orderType, sl);
+
+                result = true;
             }
         }
     }

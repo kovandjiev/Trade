@@ -9,7 +9,7 @@
 #property version   "3.00"
 #property strict
 
-#include <PSSignals.mqh>
+#include <PSSignals2.mqh>
 #include <PSMarket.mqh>
 #include <FileLog.mqh>
 #include <stdlib.mqh>
@@ -26,7 +26,7 @@ int _lastBarNumber;
 int _lastSignal;
 
 CFileLog *_log;
-PSSignals* _signals;
+PSSignals2* _signals;
 PSMarket *_market;
 
 //+------------------------------------------------------------------+
@@ -41,9 +41,9 @@ int OnInit()
     //Initialise _log with filename = "example.log", Level = WARNING and Print to console
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
 
-    _signals = new PSSignals(_log, _symbol, _period, OpenSignalId, Digits, DynOpenCoeff, CloseSignalId, DynCloseCoeff);
+    _signals = new PSSignals2(_log, _symbol, _period, OpenSignalId, Digits, Point, DynOpenCoeff, CloseSignalId, DynCloseCoeff);
 
-	_market = new PSMarket(_log, _symbol, _period, Digits);
+	_market = new PSMarket(_log, _symbol, _period, Digits, Point);
 
     if(!_signals.IsInitialised())
     {

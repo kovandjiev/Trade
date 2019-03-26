@@ -47,7 +47,7 @@ int OnInit()
   double linePrice2 = sellPrice - _pipsDistance * 2 * point;
 
   if (CreateHorizontalLine(FIRST_LINE_NAME, linePrice1, FirstLineColor, FirstLineStyle, LineWidth) 
-      && CreateHorizontalLine(FIRST_LINE_NAME, linePrice2, SecondLineColor, SecondLineStyle, LineWidth)
+      && CreateHorizontalLine(SECOND_LINE_NAME, linePrice2, SecondLineColor, SecondLineStyle, LineWidth)
       &&  SplitEmails()) {
 
     return(INIT_SUCCEEDED);
