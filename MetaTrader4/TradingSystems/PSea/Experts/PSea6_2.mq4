@@ -13,16 +13,17 @@
 #property version   "6.1"
 #property strict
 
-#include <PSSignals2.mqh>
+#include <PSSignals.mqh>
 #include <PSTrailingSL.mqh>
 #include <PSMarket.mqh>
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-extern int OpenSignalId = 1; // Open signal system Id form 1 to 10
-extern int TrailingSystemId = 1; // Trailing stop loss system Id form 1
-extern int Risk = 15; // Percent of Risk from account from 1 to 20. Deault: 15 
-extern double StopLossCoeff = 0.5; // Stop loss coefficient 0.0 to 1.0. Default: 0.5
+input int OpenSignalId = 1; // Open signal system Id form 1 to 64
+input int TrailingSystemId = 1; // Trailing stop loss system Id form 1 to 4
+input int Risk = 1; // Percent of Risk from account from 1 to 20. Deault: 1 
+input double StopLossCoeff = 0.5; // Stop loss coefficient 0.0 to 1.0. Default: 0.5
+input bool OneOrderPerTime = true; // Open only one order per time. Default: true
 
 string _symbol;
 int _period;
@@ -33,7 +34,7 @@ string _commentOrder;
 int _lastBarNumber;
 
 CFileLog *_log;
-PSSignals2* _signals;
+PSSignals* _signals;
 PSTrailingSL* _trailing;
 PSMarket *_market;
 
@@ -52,7 +53,7 @@ int OnInit()
 
     _log = new CFileLog(fileName, INFO, true, IsOptimization());
 
-    _signals = new PSSignals2(_log, _symbol, _period, OpenSignalId, _digits, _points);
+    _signals = new PSSignals(_log, _symbol, _period, OpenSignalId, _digits, _points);
     if(!_signals.IsInitialised())
     {
         return INIT_FAILED;
@@ -107,7 +108,9 @@ void OnTick()
 
     if(ProcessTrailingStop())
     {
-        return;
+        if (OneOrderPerTime) {
+            return;
+        }
     }
     
     int orderType = _signals.Open();

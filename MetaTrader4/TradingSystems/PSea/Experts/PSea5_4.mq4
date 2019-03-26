@@ -16,7 +16,7 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-input int SignalId = 1; // Open signal system Id form 1 to 23
+input int SignalId = 1; // Open signal system Id form 1 to 64
 input int Risk = 1; // Percent of Risk from account
 input double DynSLCoeff = 0.5; // Dynamic Stop loss coefficient 0.1 to 1.0. Default: 0.5
 input double DynTPCoeff = 2.0; // Dynamic Take profit coefficient 1.5 to 3.0 ... Default: 2.0
