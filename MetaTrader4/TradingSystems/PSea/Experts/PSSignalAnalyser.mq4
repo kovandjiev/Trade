@@ -14,7 +14,7 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-extern int OpenSignalId = 1; // Open signal system Id form 1 to 9
+extern int OpenSignalId = 1; // Open signal system Id form 1 to 72
 extern int CloseSignalId = 0; // Close signal system 1 to 3 (0 - no signal)
 extern double DynOpenCoeff = 0.07; // Dynamic open order coefficient 0.01 to 0.2. Default: 0.07
 extern double DynCloseCoeff = 0.07; // Dynamic close order coefficient 0.01 to 0.2. Default: 0.07
@@ -92,7 +92,7 @@ void OnTick()
         if (closeSignal != OP_NONE) 
         {
             _lastSignal = OP_NONE;
-            _market.DrawVLine(_market.OrderTypeToColor(closeSignal, false), StringConcatenate(_market.OrderTypeToString(closeSignal), " close"), STYLE_DOT);
+            _market.DrawVLine(_market.OrderTypeToColor(closeSignal, CloseOperation), StringConcatenate(_market.OrderTypeToString(closeSignal), " close"), STYLE_DOT);
         }
     }
 
@@ -103,7 +103,7 @@ void OnTick()
         if(openSignal != OP_NONE)
         {
             _lastSignal = openSignal;
-            _market.DrawVLine(_market.OrderTypeToColor(openSignal, true), StringConcatenate(_market.OrderTypeToString(openSignal), " open"), STYLE_DASH);
+            _market.DrawVLine(_market.OrderTypeToColor(openSignal, OpenOperation), StringConcatenate(_market.OrderTypeToString(openSignal), " open"), STYLE_DASH);
         }
     }
 }

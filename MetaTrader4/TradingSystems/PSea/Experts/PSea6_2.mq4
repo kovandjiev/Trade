@@ -19,7 +19,7 @@
 #include <FileLog.mqh>
 #include <stdlib.mqh>
 
-input int OpenSignalId = 1; // Open signal system Id form 1 to 64
+input int OpenSignalId = 1; // Open signal system Id form 1 to 72
 input int TrailingSystemId = 1; // Trailing stop loss system Id form 1 to 4
 input int Risk = 1; // Percent of Risk from account from 1 to 20. Deault: 1 
 input double StopLossCoeff = 0.5; // Stop loss coefficient 0.0 to 1.0. Default: 0.5
@@ -58,7 +58,7 @@ int OnInit()
     {
         return INIT_FAILED;
     }
-    _magicNumber = _signals.GetMagicNumber();
+    _magicNumber = _signals.GetMagicNumber(62/*EA version*/*1000 + TrailingSystemId);
 
     _trailing = new PSTrailingSL(_log, _symbol, _period, _digits, _points, TrailingSystemId, StopLossCoeff);
     if(!_trailing.IsInitialised())
