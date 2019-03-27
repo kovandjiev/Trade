@@ -21,6 +21,7 @@ input int Risk = 1; // Percent of Risk from account
 input double DynSLCoeff = 0.5; // Dynamic Stop loss coefficient 0.1 to 1.0. Default: 0.5
 input double DynTPCoeff = 2.0; // Dynamic Take profit coefficient 1.5 to 3.0 ... Default: 2.0
 
+const double DynOpenCoeff = 0.9;
 string _symbol;
 int _period;
 int _digits;
@@ -49,7 +50,7 @@ int OnInit()
 
     _log = new CFileLog(fileName, INFO, true, IsOptimization() || IsTesting());
 
-    _signals = new PSSignals(_log, _symbol, _period, SignalId, _digits, _points);
+    _signals = new PSSignals(_log, _symbol, _period, SignalId, _digits, _points, DynOpenCoeff);
 
 	_market = new PSMarket(_log, _symbol, _period, _digits, _points);
 
